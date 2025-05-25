@@ -14,6 +14,7 @@
     color: #333;
     user-select: none;
   }
+
   h1 {
     text-align: center;
     margin-bottom: 30px;
@@ -21,6 +22,7 @@
     font-size: 2.2rem;
     color: #2563eb;
   }
+
   #mode-select button {
     width: 100%;
     padding: 14px 0;
@@ -33,18 +35,21 @@
     color: white;
     transition: background-color 0.3s ease;
   }
+
   #word-mode-btn {
     background-color: #2563eb;
   }
   #word-mode-btn:hover {
     background-color: #1e40af;
   }
+
   #sentence-mode-btn {
     background-color: #16a34a;
   }
   #sentence-mode-btn:hover {
     background-color: #14532d;
   }
+
   #game {
     display: none;
     background: white;
@@ -52,27 +57,32 @@
     border-radius: 15px;
     box-shadow: 0 12px 30px rgb(0 0 0 / 0.1);
   }
+
   #prompt {
     font-size: 1.3rem;
     margin-bottom: 15px;
     font-weight: 600;
   }
+
   #current-part-label {
     font-weight: 600;
     color: #555;
   }
+
   #current-part {
     font-size: 1.5rem;
     color: #2563eb;
     margin-left: 8px;
   }
+
   #status {
     margin-top: 20px;
     min-height: 1.3rem;
-    font-weight:  600;
+    font-weight: 600;
     font-size: 1.1rem;
   }
-  #speak-btn, #stop-btn {
+
+  #speak-btn {
     display: block;
     margin: 20px auto 0 auto;
     background-color: #7c3aed;
@@ -86,17 +96,14 @@
     font-weight: 700;
     transition: background-color 0.25s ease;
   }
-  #speak-btn:hover:not(:disabled), #stop-btn:hover {
+  #speak-btn:hover:not(:disabled) {
     background-color: #5b21b6;
   }
   #speak-btn:disabled {
     background-color: #d8b4fe;
     cursor: not-allowed;
   }
-  #stop-btn {
-    background-color: #ef4444;
-    margin-top: 10px;
-  }
+
   #back-btn {
     margin-top: 30px;
     background: none;
@@ -127,7 +134,6 @@
   <p id="prompt"></p>
   <p><span id="current-part-label">Current:</span><span id="current-part"></span></p>
   <button id="speak-btn">Speak</button>
-  <button id="stop-btn" style="display:none;">Stop</button>
   <p id="status"></p>
   <button id="back-btn">← Back to mode selection</button>
 </div>
@@ -141,30 +147,40 @@
     "How much wood would a woodchuck chuck"
   ];
 
-  const letterMap = {
-    "a": "a", "ay": "a", "b": "b", "bee": "b", "be": "b", "c": "c", "sea": "c", "see": "c",
-    "d": "d", "dee": "d", "e": "e", "ee": "e", "f": "f", "ef": "f", "g": "g", "gee": "g",
-    "h": "h", "aitch": "h", "i": "i", "eye": "i", "j": "j", "jay": "j", "k": "k", "kay": "k",
-    "l": "l", "el": "l", "m": "m", "em": "m", "n": "n", "en": "n", "o": "o", "oh": "o",
-    "p": "p", "pee": "p", "q": "q", "cue": "q", "r": "r", "are": "r", "s": "s", "ess": "s",
-    "t": "t", "tea": "t", "u": "u", "you": "u", "v": "v", "vee": "v", "w": "w", "double you": "w",
-    "x": "x", "ex": "x", "y": "y", "why": "y", "z": "z", "zee": "z", "zed": "z"
-  };
-
   const modeSelectEl = document.getElementById('mode-select');
   const gameEl = document.getElementById('game');
   const promptEl = document.getElementById('prompt');
   const currentPartEl = document.getElementById('current-part');
   const speakBtn = document.getElementById('speak-btn');
-  const stopBtn = document.getElementById('stop-btn');
   const statusEl = document.getElementById('status');
   const backBtn = document.getElementById('back-btn');
 
-  let mode = null;
+  let mode = null; // 'word' veya 'sentence'
   let currentItem = "";
   let progress = 0;
   let recognition = null;
-  let spokenText = "";
+
+  // Levenshtein mesafe hesaplama fonksiyonu (tolerans için)
+  function levenshtein(a, b) {
+    const matrix = Array.from({length: b.length + 1}, () => []);
+    for (let i = 0; i <= b.length; i++) matrix[i][0] = i;
+    for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i-1) === a.charAt(j-1)) {
+          matrix[i][j] = matrix[i-1][j-1];
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i-1][j] + 1,
+            matrix[i][j-1] + 1,
+            matrix[i-1][j-1] + 1
+          );
+        }
+      }
+    }
+    return matrix[b.length][a.length];
+  }
 
   function chooseRandom(list) {
     return list[Math.floor(Math.random() * list.length)];
@@ -180,7 +196,6 @@
     modeSelectEl.style.display = 'none';
     gameEl.style.display = 'block';
     speakBtn.disabled = false;
-    stopBtn.style.display = 'none';
   }
 
   function updateCurrentPart() {
@@ -200,72 +215,34 @@
 
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'en-US';
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 3;
-    recognition.continuous = true;
-
-    spokenText = "";
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
       speakBtn.disabled = true;
-      stopBtn.style.display = 'block';
-      statusEl.textContent = "Listening... Speak now.";
+      statusEl.textContent = "Listening...";
     };
 
     recognition.onerror = (event) => {
       statusEl.textContent = "Error occurred: " + event.error;
       speakBtn.disabled = false;
-      stopBtn.style.display = 'none';
     };
 
     recognition.onresult = (event) => {
-      // En son sonuç alınana kadar biriktiriyoruz
-      let interimTranscript = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const transcript = event.results[i][0].transcript.trim().toLowerCase();
-        if (event.results[i].isFinal) {
-          spokenText += transcript + " ";
-        } else {
-          interimTranscript += transcript + " ";
-        }
-      }
-      statusEl.textContent = "Listening... (Interim: " + interimTranscript.trim() + ")";
-      console.log("SpokenText (final so far):", spokenText.trim());
-    };
-
-    recognition.onend = () => {
-      // Kullanıcı stop tuşuna basmadan durursa
-      statusEl.textContent = "Stopped listening.";
+      const spoken = event.results[0][0].transcript.trim().toLowerCase();
+      handleSpeech(spoken);
       speakBtn.disabled = false;
-      stopBtn.style.display = 'none';
-      if (spokenText.trim() !== "") {
-        processSpoken(spokenText.trim());
-      }
     };
 
     recognition.start();
   }
 
-  function stopRecognition() {
-    if (recognition) {
-      recognition.stop();
-      statusEl.textContent = "Processing your speech...";
-      stopBtn.style.display = 'none';
-    }
-  }
-
-  function processSpoken(text) {
-    // Konuşma sonucunu kontrol ediyoruz:
+  function handleSpeech(spoken) {
     if (mode === 'word') {
-      // text tek harf bekliyoruz, split edip harf harf kontrol yapabiliriz
-      const spokenLetters = text.split(/\s+/).map(t => letterMap[t] || t);
-      if (spokenLetters.length === 0) {
-        statusEl.textContent = "❌ No letter detected, try again!";
-        return;
-      }
       const expected = currentItem[progress].toLowerCase();
-      const spoken = spokenLetters[0]; // ilk harfi al
-      if (spoken === expected) {
+
+      // Levenshtein distance ile 1 veya altı farkı kabul et
+      if (levenshtein(spoken, expected) <= 1) {
         progress++;
         if (progress === currentItem.length) {
           statusEl.textContent = "✅ Well done! Moving to next word...";
@@ -278,18 +255,18 @@
         statusEl.textContent = `❌ Wrong letter. You said "${spoken}" but expected "${expected}". Try again!`;
         updateCurrentPart();
       }
+
     } else if (mode === 'sentence') {
-      const spokenWords = text.split(/\s+/);
-      const expectedWords = currentItem.toLowerCase().split(' ');
-      const expected = expectedWords[progress];
-      const spoken = spokenWords[0];
-      if (spoken === expected) {
+      const wordsInSentence = currentItem.toLowerCase().split(' ');
+      const expected = wordsInSentence[progress];
+      
+      if (levenshtein(spoken, expected) <= 1) {
         progress++;
-        if (progress === expectedWords.length) {
+        if (progress === wordsInSentence.length) {
           statusEl.textContent = "✅ Sentence complete! New one coming up...";
           setTimeout(() => resetGame(mode), 1500);
         } else {
-          statusEl.textContent = `Good! ${progress} / ${expectedWords.length}`;
+          statusEl.textContent = `Good! ${progress} / ${wordsInSentence.length}`;
           updateCurrentPart();
         }
       } else {
@@ -297,27 +274,21 @@
         updateCurrentPart();
       }
     }
-    speakBtn.disabled = false;
   }
 
+  // Event listeners
   document.getElementById('word-mode-btn').addEventListener('click', () => resetGame('word'));
   document.getElementById('sentence-mode-btn').addEventListener('click', () => resetGame('sentence'));
   speakBtn.addEventListener('click', startRecognition);
-  stopBtn.addEventListener('click', stopRecognition);
   backBtn.addEventListener('click', () => {
     modeSelectEl.style.display = 'block';
     gameEl.style.display = 'none';
     statusEl.textContent = "";
     progress = 0;
     currentItem = "";
-    speakBtn.disabled = false;
-    stopBtn.style.display = 'none';
-    if (recognition) recognition.stop();
   });
 })();
 </script>
 
 </body>
 </html>
-
-
