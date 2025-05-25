@@ -229,14 +229,27 @@
   }
 
   function stopRecognition() {
-    if (recognition) {
-      recognition.stop();
-      stopBtn.disabled = true;
-      speakBtn.disabled = false;
-      const spoken = collectedSpeech.trim().toLowerCase();
-      handleSpeech(spoken);
+  if (recognition) {
+    recognition.stop();
+    stopBtn.disabled = true;
+    speakBtn.disabled = false;
+
+    // Eğer collectedSpeech boşsa interimResults'ı dene
+    let spoken = collectedSpeech.trim().toLowerCase();
+
+    if (!spoken && statusEl.textContent.startsWith("🗣️")) {
+      spoken = statusEl.textContent.replace("🗣️", "").trim().toLowerCase();
     }
+
+    if (!spoken) {
+      statusEl.textContent = "❌ Nothing was understood. Try again.";
+      return;
+    }
+
+    handleSpeech(spoken);
   }
+}
+
 
   function phoneticToChar(input) {
     if (phoneticMap[input]) return phoneticMap[input];
