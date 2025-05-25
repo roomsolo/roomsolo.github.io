@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>🎤 Spelling Bee Vanilla</title>
 <style>
-  /* Genel stil */
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     max-width: 480px;
@@ -24,7 +23,6 @@
     color: #2563eb;
   }
 
-  /* Mod seçimi butonları */
   #mode-select button {
     width: 100%;
     padding: 14px 0;
@@ -39,20 +37,19 @@
   }
 
   #word-mode-btn {
-    background-color: #2563eb; /* mavi */
+    background-color: #2563eb;
   }
   #word-mode-btn:hover {
     background-color: #1e40af;
   }
 
   #sentence-mode-btn {
-    background-color: #16a34a; /* yeşil */
+    background-color: #16a34a;
   }
   #sentence-mode-btn:hover {
     background-color: #14532d;
   }
 
-  /* Oyun arayüzü */
   #game {
     display: none;
     background: white;
@@ -85,11 +82,10 @@
     font-size: 1.1rem;
   }
 
-  /* Speak butonu */
   #speak-btn {
     display: block;
     margin: 20px auto 0 auto;
-    background-color: #7c3aed; /* mor */
+    background-color: #7c3aed;
     color: white;
     border: none;
     border-radius: 12px;
@@ -108,7 +104,6 @@
     cursor: not-allowed;
   }
 
-  /* Geri dön butonu */
   #back-btn {
     margin-top: 30px;
     background: none;
@@ -152,6 +147,16 @@
     "How much wood would a woodchuck chuck"
   ];
 
+  const letterMap = {
+    "a": "a", "b": "b", "c": "c", "d": "d", "e": "e", "f": "f", "g": "g", "h": "h", "i": "i",
+    "j": "j", "k": "k", "l": "l", "m": "m", "n": "n", "o": "o", "p": "p", "q": "q", "r": "r",
+    "s": "s", "t": "t", "u": "u", "v": "v", "w": "w", "x": "x", "y": "y", "z": "z",
+    "bee": "b", "be": "b", "sea": "c", "see": "c", "dee": "d", "ee": "e", "gee": "g",
+    "jay": "j", "kay": "k", "el": "l", "em": "m", "en": "n", "oh": "o", "pee": "p",
+    "are": "r", "ess": "s", "tea": "t", "you": "u", "vee": "v", "double you": "w",
+    "ex": "x", "why": "y", "zee": "z", "zed": "z"
+  };
+
   const modeSelectEl = document.getElementById('mode-select');
   const gameEl = document.getElementById('game');
   const promptEl = document.getElementById('prompt');
@@ -160,7 +165,7 @@
   const statusEl = document.getElementById('status');
   const backBtn = document.getElementById('back-btn');
 
-  let mode = null; // 'word' veya 'sentence'
+  let mode = null;
   let currentItem = "";
   let progress = 0;
   let recognition = null;
@@ -212,7 +217,12 @@
     };
 
     recognition.onresult = (event) => {
-      const spoken = event.results[0][0].transcript.trim().toLowerCase();
+      let spokenRaw = event.results[0][0].transcript.trim().toLowerCase();
+      console.log("Algılanan:", spokenRaw);
+
+      // Harf okunuşlarını normalize et
+      let spoken = letterMap[spokenRaw] || spokenRaw;
+
       handleSpeech(spoken);
       speakBtn.disabled = false;
     };
@@ -222,7 +232,7 @@
 
   function handleSpeech(spoken) {
     if (mode === 'word') {
-      const expected = currentItem[progress].toLowerCase();
+      let expected = currentItem[progress].toLowerCase();
       if (spoken === expected) {
         progress++;
         if (progress === currentItem.length) {
@@ -235,43 +245,51 @@
       } else {
         progress = Math.max(progress - 1, 0);
         statusEl.textContent = `❌ Wrong letter. Try again! You said "${spoken}" but expected "${expected}".`;
-        updateCurrentPart();
       }
-    } else if (mode === 'sentence') {
-      const wordsInSentence = currentItem.toLowerCase().split(' ');
-      const expected = wordsInSentence[progress];
-      if (spoken === expected) {
+    } else {
+      // sentence mode
+      let wordsInSentence = currentItem.split(' ');
+      let expectedWord = wordsInSentence[progress].toLowerCase();
+
+      if (spoken === expectedWord) {
         progress++;
         if (progress === wordsInSentence.length) {
-          statusEl.textContent = "✅ Sentence complete! New one coming up...";
+          statusEl.textContent = "✅ Great job! Next sentence coming...";
           setTimeout(() => resetGame(mode), 1500);
         } else {
-          statusEl.textContent = `Good! ${progress} / ${wordsInSentence.length}`;
+          statusEl.textContent = `Correct! Progress: ${progress} / ${wordsInSentence.length}`;
           updateCurrentPart();
         }
       } else {
         progress = Math.max(progress - 1, 0);
-        statusEl.textContent = `❌ Wrong word. Try again! You said "${spoken}" but expected "${expected}".`;
-        updateCurrentPart();
+        statusEl.textContent = `❌ Wrong word. Try again! You said "${spoken}" but expected "${expectedWord}".`;
       }
     }
   }
 
-  // Event listeners
-  document.getElementById('word-mode-btn').addEventListener('click', () => resetGame('word'));
-  document.getElementById('sentence-mode-btn').addEventListener('click', () => resetGame('sentence'));
-  speakBtn.addEventListener('click', startRecognition);
-  backBtn.addEventListener('click', () => {
-    modeSelectEl.style.display = 'block';
-    gameEl.style.display = 'none';
-    statusEl.textContent = "";
-    progress = 0;
-    currentItem = "";
+  speakBtn.addEventListener('click', () => {
+    startRecognition();
   });
+
+  document.getElementById('word-mode-btn').addEventListener('click', () => {
+    resetGame('word');
+  });
+  document.getElementById('sentence-mode-btn').addEventListener('click', () => {
+    resetGame('sentence');
+  });
+
+  backBtn.addEventListener('click', () => {
+    mode = null;
+    currentItem = "";
+    progress = 0;
+    gameEl.style.display = 'none';
+    modeSelectEl.style.display = 'block';
+    statusEl.textContent = "";
+    currentPartEl.textContent = "";
+  });
+
 })();
 </script>
 
 </body>
 </html>
-
-  
