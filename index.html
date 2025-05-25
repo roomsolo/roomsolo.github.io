@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>🎤 Spelling Bee Vanilla</title>
 <style>
-  /* Stil aynı, sade ve okunabilir */
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     max-width: 480px;
@@ -70,10 +69,10 @@
   #status {
     margin-top: 20px;
     min-height: 1.3rem;
-    font-weight: 600;
+    font-weight:  600;
     font-size: 1.1rem;
   }
-  #speak-btn {
+  #speak-btn, #stop-btn {
     display: block;
     margin: 20px auto 0 auto;
     background-color: #7c3aed;
@@ -87,12 +86,16 @@
     font-weight: 700;
     transition: background-color 0.25s ease;
   }
-  #speak-btn:hover:not(:disabled) {
+  #speak-btn:hover:not(:disabled), #stop-btn:hover {
     background-color: #5b21b6;
   }
   #speak-btn:disabled {
     background-color: #d8b4fe;
     cursor: not-allowed;
+  }
+  #stop-btn {
+    background-color: #ef4444;
+    margin-top: 10px;
   }
   #back-btn {
     margin-top: 30px;
@@ -124,6 +127,7 @@
   <p id="prompt"></p>
   <p><span id="current-part-label">Current:</span><span id="current-part"></span></p>
   <button id="speak-btn">Speak</button>
+  <button id="stop-btn" style="display:none;">Stop</button>
   <p id="status"></p>
   <button id="back-btn">← Back to mode selection</button>
 </div>
@@ -152,13 +156,15 @@
   const promptEl = document.getElementById('prompt');
   const currentPartEl = document.getElementById('current-part');
   const speakBtn = document.getElementById('speak-btn');
+  const stopBtn = document.getElementById('stop-btn');
   const statusEl = document.getElementById('status');
   const backBtn = document.getElementById('back-btn');
 
-  let mode = null; // 'word' veya 'sentence'
+  let mode = null;
   let currentItem = "";
   let progress = 0;
   let recognition = null;
+  let spokenText = "";
 
   function chooseRandom(list) {
     return list[Math.floor(Math.random() * list.length)];
@@ -174,6 +180,7 @@
     modeSelectEl.style.display = 'none';
     gameEl.style.display = 'block';
     speakBtn.disabled = false;
+    stopBtn.style.display = 'none';
   }
 
   function updateCurrentPart() {
@@ -193,59 +200,71 @@
 
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'en-US';
-    recognition.interimResults = true; // Ara sonuçları hızlı almak için
-    recognition.maxAlternatives = 3;   // En iyi 3 sonucu al
-    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
+    recognition.continuous = true;
+
+    spokenText = "";
 
     recognition.onstart = () => {
       speakBtn.disabled = true;
-      statusEl.textContent = "Listening...";
+      stopBtn.style.display = 'block';
+      statusEl.textContent = "Listening... Speak now.";
     };
 
     recognition.onerror = (event) => {
       statusEl.textContent = "Error occurred: " + event.error;
       speakBtn.disabled = false;
+      stopBtn.style.display = 'none';
     };
 
     recognition.onresult = (event) => {
-      const results = event.results[0];
-      let spoken = "";
-
-      // Alternatif sonuçları kontrol et
-      for (let i = 0; i < results.length; i++) {
-        let candidate = results[i].transcript.trim().toLowerCase();
-
-        if (mode === 'word') {
-          candidate = letterMap[candidate] || candidate;
-          if (candidate === currentItem[progress].toLowerCase()) {
-            spoken = candidate;
-            break;
-          }
+      // En son sonuç alınana kadar biriktiriyoruz
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        const transcript = event.results[i][0].transcript.trim().toLowerCase();
+        if (event.results[i].isFinal) {
+          spokenText += transcript + " ";
         } else {
-          const expectedWord = currentItem.split(' ')[progress].toLowerCase();
-          if (candidate === expectedWord) {
-            spoken = candidate;
-            break;
-          }
+          interimTranscript += transcript + " ";
         }
       }
+      statusEl.textContent = "Listening... (Interim: " + interimTranscript.trim() + ")";
+      console.log("SpokenText (final so far):", spokenText.trim());
+    };
 
-      if (!spoken) {
-        // Alternatifler içinde eşleşme yoksa ilk sonucu kullan
-        spoken = (letterMap[results[0].transcript.trim().toLowerCase()] || results[0].transcript.trim().toLowerCase());
-      }
-
-      console.log("Recognized (best):", spoken);
-      handleSpeech(spoken);
+    recognition.onend = () => {
+      // Kullanıcı stop tuşuna basmadan durursa
+      statusEl.textContent = "Stopped listening.";
       speakBtn.disabled = false;
+      stopBtn.style.display = 'none';
+      if (spokenText.trim() !== "") {
+        processSpoken(spokenText.trim());
+      }
     };
 
     recognition.start();
   }
 
-  function handleSpeech(spoken) {
+  function stopRecognition() {
+    if (recognition) {
+      recognition.stop();
+      statusEl.textContent = "Processing your speech...";
+      stopBtn.style.display = 'none';
+    }
+  }
+
+  function processSpoken(text) {
+    // Konuşma sonucunu kontrol ediyoruz:
     if (mode === 'word') {
+      // text tek harf bekliyoruz, split edip harf harf kontrol yapabiliriz
+      const spokenLetters = text.split(/\s+/).map(t => letterMap[t] || t);
+      if (spokenLetters.length === 0) {
+        statusEl.textContent = "❌ No letter detected, try again!";
+        return;
+      }
       const expected = currentItem[progress].toLowerCase();
+      const spoken = spokenLetters[0]; // ilk harfi al
       if (spoken === expected) {
         progress++;
         if (progress === currentItem.length) {
@@ -256,39 +275,44 @@
           updateCurrentPart();
         }
       } else {
-        progress = Math.max(progress - 1, 0);
-        statusEl.textContent = `❌ Wrong letter. Try again! You said "${spoken}" but expected "${expected}".`;
+        statusEl.textContent = `❌ Wrong letter. You said "${spoken}" but expected "${expected}". Try again!`;
         updateCurrentPart();
       }
     } else if (mode === 'sentence') {
-      const wordsInSentence = currentItem.toLowerCase().split(' ');
-      const expected = wordsInSentence[progress];
+      const spokenWords = text.split(/\s+/);
+      const expectedWords = currentItem.toLowerCase().split(' ');
+      const expected = expectedWords[progress];
+      const spoken = spokenWords[0];
       if (spoken === expected) {
         progress++;
-        if (progress === wordsInSentence.length) {
+        if (progress === expectedWords.length) {
           statusEl.textContent = "✅ Sentence complete! New one coming up...";
           setTimeout(() => resetGame(mode), 1500);
         } else {
-          statusEl.textContent = `Good! ${progress} / ${wordsInSentence.length}`;
+          statusEl.textContent = `Good! ${progress} / ${expectedWords.length}`;
           updateCurrentPart();
         }
       } else {
-        progress = Math.max(progress - 1, 0);
-        statusEl.textContent = `❌ Wrong word. Try again! You said "${spoken}" but expected "${expected}".`;
+        statusEl.textContent = `❌ Wrong word. You said "${spoken}" but expected "${expected}". Try again!`;
         updateCurrentPart();
       }
     }
+    speakBtn.disabled = false;
   }
 
   document.getElementById('word-mode-btn').addEventListener('click', () => resetGame('word'));
   document.getElementById('sentence-mode-btn').addEventListener('click', () => resetGame('sentence'));
   speakBtn.addEventListener('click', startRecognition);
+  stopBtn.addEventListener('click', stopRecognition);
   backBtn.addEventListener('click', () => {
     modeSelectEl.style.display = 'block';
     gameEl.style.display = 'none';
     statusEl.textContent = "";
     progress = 0;
     currentItem = "";
+    speakBtn.disabled = false;
+    stopBtn.style.display = 'none';
+    if (recognition) recognition.stop();
   });
 })();
 </script>
