@@ -137,13 +137,12 @@
     "How much wood would a woodchuck chuck"
   ];
 
-  const letterMap = {
-    "a": ["a", "ay"], "b": ["b", "bee"], "c": ["c", "see"],
-    "d": ["d", "dee"], "e": ["e", "ee"], "g": ["g", "gee"],
-    "i": ["i", "eye"], "k": ["k", "kay"], "o": ["o", "oh"],
-    "q": ["q", "queue"], "t": ["t", "tee"], "u": ["u", "you"],
-    "v": ["v", "vee"], "w": ["w", "double you"], "x": ["x", "ex"],
-    "y": ["y", "why"], "z": ["z", "zee", "zed"]
+  const phoneticMap = {
+    alpha: 'a', bravo: 'b', charlie: 'c', delta: 'd', echo: 'e', foxtrot: 'f',
+    golf: 'g', hotel: 'h', india: 'i', juliett: 'j', kilo: 'k', lima: 'l',
+    mike: 'm', november: 'n', oscar: 'o', papa: 'p', quebec: 'q', romeo: 'r',
+    sierra: 's', tango: 't', uniform: 'u', victor: 'v', whiskey: 'w',
+    xray: 'x', yankee: 'y', zulu: 'z'
   };
 
   const modeSelectEl = document.getElementById('mode-select');
@@ -159,7 +158,7 @@
   let currentItem = "";
   let progress = 0;
   let recognition = null;
-  let recognitionTranscript = "";
+  let collectedSpeech = "";
 
   function chooseRandom(list) {
     return list[Math.floor(Math.random() * list.length)];
@@ -170,12 +169,13 @@
     progress = 0;
     currentItem = (mode === 'word') ? chooseRandom(words) : chooseRandom(sentences);
     statusEl.textContent = "Say the next " + (mode === 'word' ? "letter" : "word") + ".";
-    promptEl.textContent = mode === 'word' ? `Spell this word: ${currentItem}` : `Say this sentence: \"${currentItem}\"`;
+    promptEl.textContent = mode === 'word' ? `Spell this word: ${currentItem}` : `Say this sentence: "${currentItem}"`;
     updateCurrentPart();
     modeSelectEl.style.display = 'none';
     gameEl.style.display = 'block';
     speakBtn.disabled = false;
     stopBtn.disabled = true;
+    collectedSpeech = "";
   }
 
   function updateCurrentPart() {
@@ -187,69 +187,44 @@
     }
   }
 
-  function handleSpeech(spoken) {
-    spoken = spoken.toLowerCase().trim();
-    if (mode === 'word') {
-      const expected = currentItem[progress].toLowerCase();
-      const expectedVariants = letterMap[expected] || [expected];
-      if (expectedVariants.includes(spoken)) {
-        progress++;
-        if (progress === currentItem.length) {
-          statusEl.textContent = "✅ Well done! Moving to next word...";
-          setTimeout(() => resetGame(mode), 1500);
-        } else {
-          statusEl.textContent = `Correct! Progress: ${progress} / ${currentItem.length}`;
-          updateCurrentPart();
-        }
-      } else {
-        progress = Math.max(progress - 1, 0);
-        statusEl.textContent = `❌ Wrong letter. You said \"${spoken}\", expected \"${expected}\".`;
-        updateCurrentPart();
-      }
-    } else {
-      const wordsInSentence = currentItem.toLowerCase().split(' ');
-      const expected = wordsInSentence[progress];
-      if (spoken === expected) {
-        progress++;
-        if (progress === wordsInSentence.length) {
-          statusEl.textContent = "✅ Sentence complete! New one coming up...";
-          setTimeout(() => resetGame(mode), 1500);
-        } else {
-          statusEl.textContent = `Good! ${progress} / ${wordsInSentence.length}`;
-          updateCurrentPart();
-        }
-      } else {
-        progress = Math.max(progress - 1, 0);
-        statusEl.textContent = `❌ Wrong word. You said \"${spoken}\", expected \"${expected}\".`;
-        updateCurrentPart();
-      }
-    }
-  }
-
   function startRecognition() {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
       alert("Your browser does not support Speech Recognition.");
       return;
     }
-    recognitionTranscript = "";
+
     recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'en-US';
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.continuous = true;
 
     recognition.onstart = () => {
-      statusEl.textContent = "🎙 Listening...";
       speakBtn.disabled = true;
       stopBtn.disabled = false;
+      statusEl.textContent = "🎤 Listening...";
+      collectedSpeech = "";
     };
+
     recognition.onresult = (event) => {
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        recognitionTranscript += event.results[i][0].transcript + ' ';
+      const results = event.results;
+      let interim = "";
+      for (let i = event.resultIndex; i < results.length; ++i) {
+        const transcript = results[i][0].transcript.trim();
+        if (results[i].isFinal) {
+          collectedSpeech += " " + transcript;
+        } else {
+          interim += transcript + " ";
+        }
       }
+      statusEl.textContent = `🗣️ ${interim.trim()}`;
     };
+
     recognition.onerror = (event) => {
-      statusEl.textContent = "❌ Error: " + event.error;
+      statusEl.textContent = "Error occurred: " + event.error;
+      speakBtn.disabled = false;
+      stopBtn.disabled = true;
     };
+
     recognition.start();
   }
 
@@ -258,7 +233,69 @@
       recognition.stop();
       stopBtn.disabled = true;
       speakBtn.disabled = false;
-      handleSpeech(recognitionTranscript.trim().toLowerCase());
+      const spoken = collectedSpeech.trim().toLowerCase();
+      handleSpeech(spoken);
+    }
+  }
+
+  function phoneticToChar(input) {
+    if (phoneticMap[input]) return phoneticMap[input];
+    if (input.length === 1 && /^[a-z]$/.test(input)) return input;
+    return null;
+  }
+
+  function handleSpeech(spoken) {
+    if (!spoken) {
+      statusEl.textContent = "❌ No input detected.";
+      return;
+    }
+
+    if (mode === 'word') {
+      const spokenParts = spoken.split(/\s+/);
+      for (let i = 0; i < spokenParts.length; i++) {
+        const s = spokenParts[i];
+        const mapped = phoneticToChar(s);
+        if (!mapped) continue;
+        const expected = currentItem[progress].toLowerCase();
+        if (mapped === expected) {
+          progress++;
+          if (progress === currentItem.length) {
+            statusEl.textContent = "✅ Well done! Moving to next word...";
+            setTimeout(() => resetGame(mode), 1500);
+            return;
+          } else {
+            statusEl.textContent = `Correct! ${progress} / ${currentItem.length}`;
+            updateCurrentPart();
+            return;
+          }
+        } else {
+          statusEl.textContent = `❌ Expected "${expected}" but got "${mapped}". Try again.`;
+          updateCurrentPart();
+          return;
+        }
+      }
+    } else if (mode === 'sentence') {
+      const wordsInSentence = currentItem.toLowerCase().split(' ');
+      const spokenWords = spoken.split(/\s+/);
+      for (let i = 0; i < spokenWords.length; i++) {
+        const expected = wordsInSentence[progress];
+        if (spokenWords[i] === expected) {
+          progress++;
+          if (progress === wordsInSentence.length) {
+            statusEl.textContent = "✅ Sentence complete! New one coming up...";
+            setTimeout(() => resetGame(mode), 1500);
+            return;
+          } else {
+            statusEl.textContent = `Good! ${progress} / ${wordsInSentence.length}`;
+            updateCurrentPart();
+            return;
+          }
+        } else {
+          statusEl.textContent = `❌ Wrong word. Expected "${expected}" but got "${spokenWords[i]}"`;
+          updateCurrentPart();
+          return;
+        }
+      }
     }
   }
 
@@ -272,12 +309,12 @@
     statusEl.textContent = "";
     progress = 0;
     currentItem = "";
-    speakBtn.disabled = false;
-    stopBtn.disabled = true;
+    collectedSpeech = "";
     if (recognition) recognition.stop();
   });
 })();
 </script>
+
 
 </body>
 </html>
