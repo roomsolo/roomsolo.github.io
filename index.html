@@ -130,7 +130,47 @@
 
 <script>
 (() => {
-  const words = ["banana", "elephant", "giraffe", "umbrella", "zebra"];
+  const words = [
+  "apple", "ball", "cat", "dog", "eat", "fast", "good", "house", "ice", "jump",
+  "kite", "leg", "mom", "new", "old", "pen", "queen", "run", "sun", "tree",
+  "up", "van", "water", "box", "yes", "zoo", "bird", "car", "door", "egg",
+  "friend", "girl", "hand", "ice cream", "job", "key", "light", "man", "nose", "orange",
+  "park", "quick", "red", "sit", "time", "umbrella", "village", "window", "yellow", "zip",
+  "ant", "book", "cake", "day", "ear", "fish", "game", "hat", "island", "juice",
+  "king", "lake", "moon", "night", "open", "pig", "queen", "rain", "star", "table",
+  "use", "voice", "walk", "x-ray", "yard", "zebra", "air", "boy", "cup", "dance",
+  "eye", "family", "go", "hill", "idea", "jump", "kite", "love", "milk", "nose",
+  "oil", "pop", "quiet", "rose", "sun", "tree", "under", "very", "warm", "yes",
+
+  "actor", "baby", "cake", "desk", "easy", "fast", "girl", "hope", "iron", "job",
+  "kind", "leaf", "moon", "nice", "open", "post", "quiz", "rain", "snow", "time",
+  "unit", "view", "wind", "x-ray", "yard", "zero", "animal", "bread", "city", "door",
+  "egg", "face", "gold", "hill", "ink", "jar", "king", "lamp", "map", "nest",
+  "owl", "pen", "queen", "road", "sun", "tree", "use", "van", "wall", "xylophone",
+  "yellow", "zebra", "apple", "ball", "cat", "dog", "eat", "fan", "goat", "hat",
+  "ice", "joke", "kite", "log", "man", "net", "oak", "pig", "queen", "rat",
+  "sit", "top", "up", "van", "wet", "box", "yak", "zip", "arm", "bat",
+  "cow", "dig", "elf", "fog", "gym", "hat", "ill", "jar", "kid", "leg",
+  "mud", "nap", "oak", "pit", "quack", "run", "sun", "tip", "urn", "vet",
+  "win", "box", "yam", "zigzag", "ant", "bag", "cap", "dip", "ear", "fit",
+  "gap", "hit", "ink", "jam", "kid", "lap", "mat", "net", "oak", "pan",
+  "quilt", "rip", "sip", "tap", "urn", "van", "wax", "yam", "zip", "axe",
+
+  "balloon", "camera", "doctor", "elephant", "forest", "guitar", "holiday", "island", "jungle", "kitchen",
+  "lemon", "mountain", "nature", "ocean", "pencil", "quiet", "river", "school", "teacher", "umbrella",
+  "violin", "window", "yellow", "zebra", "animal", "bridge", "castle", "desert", "engine", "family",
+  "garden", "hospital", "internet", "jacket", "knowledge", "library", "market", "necklace", "octopus", "planet",
+  "queen", "rocket", "sandwich", "turtle", "universe", "volcano", "waterfall", "xylophone", "yogurt", "zoo",
+  "apple", "banana", "cherry", "date", "eggplant", "fig", "grape", "honey", "iceberg", "jackfruit",
+  "kiwi", "leek", "mango", "nectarine", "olive", "papaya", "quince", "raspberry", "strawberry", "tomato",
+  "ugli", "vanilla", "watermelon", "xigua", "yam", "zucchini", "antelope", "buffalo", "cheetah", "dolphin",
+  "elephant", "flamingo", "giraffe", "hippopotamus", "iguana", "jaguar", "koala", "lemur", "meerkat", "newt",
+  "octopus", "penguin", "quail", "raccoon", "shark", "tiger", "urchin", "vulture", "wolf", "xerus",
+  "yak", "zebra", "actor", "ball", "cat", "dog", "egg", "fish", "goat", "hat",
+  "ink", "jar", "key", "log", "man", "net", "oak", "pen", "queen", "rat",
+  "sun", "top", "up", "van", "wet", "box", "yak", "zip"
+];
+
   const sentences = [
     "The quick brown fox jumps over the lazy dog",
     "She sells seashells by the seashore",
