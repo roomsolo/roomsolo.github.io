@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>🎤 Spelling Bee Vanilla</title>
+<title>🎤 Risottolingo</title>
 <style>
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -137,60 +137,61 @@
     "How much wood would a woodchuck chuck"
   ];
 
-  const phoneticMap = {
+const phoneticMap = {
   // A
-  alpha: "a", adam: "a", a: "a", ay: "a",
+  alpha: "a", adam: "a", a: "a", ay: "a", argentina: "a", australia: "a",
   // B
-  bravo: "b", boy: "b", b: "b", bee: "b",
+  bravo: "b", boy: "b", b: "b", bee: "b", belgium: "b",
   // C
-  charlie: "c", c: "c", see: "c",
+  charlie: "c", c: "c", see: "c", canada: "c",
   // D
-  delta: "d", david: "d", d: "d", dee: "d",
+  delta: "d", david: "d", d: "d", dee: "d", denmark: "d",
   // E
-  echo: "e", edward: "e", e: "e", ee: "e",
+  echo: "e", edward: "e", e: "e", ee: "e", egypt: "e",
   // F
-  foxtrot: "f", frank: "f", f: "f", ef: "f",
+  foxtrot: "f", frank: "f", f: "f", ef: "f", france: "f",
   // G
-  golf: "g", george: "g", g: "g", gee: "g",
+  golf: "g", george: "g", g: "g", gee: "g", greenland: "g",
   // H
-  hotel: "h", henry: "h", h: "h", aitch: "h",
+  hotel: "h", henry: "h", h: "h", aitch: "h", hungary: "h",
   // I
-  india: "i", ida: "i", i: "i", eye: "i",
+  india: "i", ida: "i", i: "i", eye: "i", ireland: "i",
   // J
-  juliett: "j", john: "j", j: "j", jay: "j",
+  juliett: "j", john: "j", j: "j", jay: "j", jamaica: "j",
   // K
-  kilo: "k", king: "k", k: "k", kay: "k",
+  kilo: "k", king: "k", k: "k", kay: "k", kenya: "k",
   // L
-  lima: "l", lincoln: "l", l: "l", el: "l",
+  lima: "l", lincoln: "l", l: "l", el: "l", lithuania: "l", luxembourg: "l", latvia: "l",
   // M
-  mike: "m", mary: "m", m: "m", em: "m",
+  mike: "m", mary: "m", m: "m", em: "m", mexico: "m",
   // N
-  november: "n", nora: "n", n: "n", en: "n",
+  november: "n", nora: "n", n: "n", en: "n", netherlands: "n",
   // O
-  oscar: "o", o: "o", oh: "o",
+  oscar: "o", o: "o", oh: "o", oman: "o",
   // P
-  papa: "p", paul: "p", p: "p", pee: "p",
+  papa: "p", paul: "p", p: "p", pee: "p", pakistan: "p",
   // Q
-  quebec: "q", queen: "q", q: "q", cue: "q",
+  quebec: "q", queen: "q", q: "q", cue: "q", qatar: "q",
   // R
-  romeo: "r", robert: "r", r: "r", ar: "r",
+  romeo: "r", robert: "r", r: "r", ar: "r", romania: "r",
   // S
-  sierra: "s", sam: "s", s: "s", ess: "s",
+  sierra: "s", sam: "s", s: "s", ess: "s", serbia: "s",
   // T
-  tango: "t", tom: "t", t: "t", tee: "t",
+  tango: "t", tom: "t", t: "t", tee: "t", tunisia: "t",
   // U
-  uniform: "u", union: "u", u: "u", you: "u",
+  uniform: "u", union: "u", u: "u", you: "u", usa: "u",
   // V
-  victor: "v", v: "v", vee: "v",
+  victor: "v", v: "v", vee: "v", venezuela: "v",
   // W
-  whiskey: "w", william: "w", w: "w", doubleyou: "w",
+  whiskey: "w", william: "w", w: "w", doubleyou: "w", "western sahara": "w",
   // X
-  xray: "x", x: "x", ex: "x",
+  xray: "x", x: "x", ex: "x", xavier: "x",
   // Y
-  yankee: "y", young: "y", y: "y", why: "y",
+  yankee: "y", young: "y", y: "y", why: "y", yemen: "y",
   // Z
-  zulu: "z", zebra: "z", z: "z", zee: "z", zed: "z"
-  };
+  zulu: "z", zebra: "z", z: "z", zee: "z", zed: "z", zambia: "z", zimbabwe: "z"
+};
+
 
 
   const modeSelectEl = document.getElementById('mode-select');
