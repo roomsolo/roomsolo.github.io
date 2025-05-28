@@ -519,30 +519,27 @@ const phoneticMap = {
   }
 
   function resetGame(selectedMode) {
-  mode = selectedMode;
-  progress = 0;
-  currentItem = (mode === 'word') ? chooseRandom(words) : chooseRandom(sentences);
-  statusEl.textContent = mode === 'word' 
-    ? "Say the next letter." 
-    : "Say the entire sentence."; // Değişiklik burada
-  promptEl.textContent = mode === 'word' 
-    ? `Spell this word: ${currentItem}` 
-    : `Say this sentence: "${currentItem}"`;
-  currentPartEl.textContent = mode === 'word' ? currentItem[0] : ""; // Cümle modunda boş bırak
-  modeSelectEl.style.display = 'none';
-  gameEl.style.display = 'block';
-  speakBtn.disabled = false;
-  stopBtn.disabled = true;
-  collectedSpeech = "";
-}
+    mode = selectedMode;
+    progress = 0;
+    currentItem = (mode === 'word') ? chooseRandom(words) : chooseRandom(sentences);
+    statusEl.textContent = "Say the next " + (mode === 'word' ? "letter" : "word") + ".";
+    promptEl.textContent = mode === 'word' ? `Spell this word: ${currentItem}` : `Say this sentence: "${currentItem}"`;
+    updateCurrentPart();
+    modeSelectEl.style.display = 'none';
+    gameEl.style.display = 'block';
+    speakBtn.disabled = false;
+    stopBtn.disabled = true;
+    collectedSpeech = "";
+  }
 
   function updateCurrentPart() {
-  if (mode === 'word') {
-    currentPartEl.textContent = currentItem[progress] || "";
-  } else {
-    currentPartEl.textContent = ""; // Cümle modunda boş
+    if (mode === 'word') {
+      currentPartEl.textContent = currentItem[progress] || "";
+    } else {
+      const wordsInSentence = currentItem.split(' ');
+      currentPartEl.textContent = wordsInSentence[progress] || "";
+    }
   }
-}
 
   function startRecognition() {
     if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
@@ -615,49 +612,35 @@ const phoneticMap = {
   }
 
   function handleSpeech(spoken) {
-  if (!spoken) {
-    statusEl.textContent = "❌ No input detected.";
-    return;
-  }
+    if (!spoken) {
+      statusEl.textContent = "❌ No input detected.";
+      return;
+    }
 
-  if (mode === 'word') {
-    // Kelime modu (eski haliyle aynı)
-    const spokenParts = spoken.split(/\s+/);
-    for (let i = 0; i < spokenParts.length; i++) {
-      const s = spokenParts[i];
-      const mapped = phoneticToChar(s);
-      if (!mapped) continue;
-      const expected = currentItem[progress].toLowerCase();
-      if (mapped === expected) {
-        progress++;
-        if (progress === currentItem.length) {
-          statusEl.textContent = "✅ Well done! Moving to next word...";
-          setTimeout(() => resetGame(mode), 1500);
-          return;
+    if (mode === 'word') {
+      const spokenParts = spoken.split(/\s+/);
+      for (let i = 0; i < spokenParts.length; i++) {
+        const s = spokenParts[i];
+        const mapped = phoneticToChar(s);
+        if (!mapped) continue;
+        const expected = currentItem[progress].toLowerCase();
+        if (mapped === expected) {
+          progress++;
+          if (progress === currentItem.length) {
+            statusEl.textContent = "✅ Well done! Moving to next word...";
+            setTimeout(() => resetGame(mode), 1500);
+            return;
+          } else {
+            statusEl.textContent = `Correct! ${progress} / ${currentItem.length}`;
+            updateCurrentPart();
+            return;
+          }
         } else {
-          statusEl.textContent = `Correct! ${progress} / ${currentItem.length}`;
+          statusEl.textContent = `❌ Expected "${expected}" but got "${mapped}". Try again.`;
           updateCurrentPart();
           return;
         }
-      } else {
-        statusEl.textContent = `❌ Expected "${expected}" but got "${mapped}". Try again.`;
-        updateCurrentPart();
-        return;
       }
-    }
-  } else if (mode === 'sentence') {
-    // Cümle modu: Tüm cümleyi bir defada kontrol et
-    const expectedSentence = currentItem.toLowerCase().trim();
-    const spokenSentence = spoken.trim();
-
-    if (spokenSentence === expectedSentence) {
-      statusEl.textContent = "✅ Perfect! Moving to next sentence...";
-      setTimeout(() => resetGame(mode), 1500);
-    } else {
-      statusEl.textContent = `❌ Incorrect. Try again. Expected: "${expectedSentence}"`;
-    }
-  }
-}
     } else if (mode === 'sentence') {
       const wordsInSentence = currentItem.toLowerCase().split(' ');
       const spokenWords = spoken.split(/\s+/);
